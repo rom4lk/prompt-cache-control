@@ -286,7 +286,7 @@ export const register: Register = (on, options) => {
     const { last, advice, left } = current(policy, Date.now())
     if (!last && advice.kind !== 'off') return next(e)
     const { Box, Text } = $.ui.resolve(e)
-    const columns = e.viewport?.columns ?? 100
+    const columns = e.props.bodyColumns
     const color = COLOR[advice.kind]
     // The band is one instance: whatever the plugins beneath draw (another mod's band) stays, under this line.
     const below = await next(e)
@@ -301,24 +301,23 @@ export const register: Register = (on, options) => {
 
     const ratio = hitRatio(last)
     const wide = columns >= 90
+    // One row: the figures never shrink, only the advice at the end truncates.
+    // No fragments here: the desktop surface draws one as a block and stacks its children.
     return stack(
       <Box flexDirection="row" columnGap={1}>
-        <Text bold color={color}>{advice.kind === 'warm' ? '●' : advice.kind === 'soon' ? '▲' : advice.kind === 'off' || advice.kind === 'cold' || advice.kind === 'uncached' ? '○' : '✖'}</Text>
-        <Text bold color="cyan">cache</Text>
-        <Text color={color}>{bar(ratio, wide ? 10 : 6)}</Text>
-        <Text bold>{`${Math.round(ratio * 100)}%`}</Text>
-        {wide ? (
-          <>
-            <Text color="green">{`read ${fmtTokens(last.read)}`}</Text>
-            <Text color="yellow">{`wrote ${fmtTokens(last.write)}`}</Text>
-            <Text color="cyan">{`new ${fmtTokens(last.fresh)}`}</Text>
-          </>
-        ) : (
-          <Text dimColor>{`${fmtTokens(promptTokens(last))} tok`}</Text>
-        )}
-        {advice.kind !== 'uncached' && advice.kind !== 'off' && (
-          <Text bold color={left > 0 ? lifeColor(left, ttl, policy.warnMs) : 'red'}>{left > 0 ? `⏱ ${fmtClock(left)}` : '⏱ 0:00'}</Text>
-        )}
+        <Box flexDirection="row" columnGap={1} flexShrink={0}>
+          <Text bold color={color}>{advice.kind === 'warm' ? '●' : advice.kind === 'soon' ? '▲' : advice.kind === 'off' || advice.kind === 'cold' || advice.kind === 'uncached' ? '○' : '✖'}</Text>
+          <Text bold color="cyan">cache</Text>
+          <Text color={color}>{bar(ratio, wide ? 10 : 6)}</Text>
+          <Text bold>{`${Math.round(ratio * 100)}%`}</Text>
+          {wide && <Text color="green">{`read ${fmtTokens(last.read)}`}</Text>}
+          {wide && <Text color="yellow">{`wrote ${fmtTokens(last.write)}`}</Text>}
+          {wide && <Text color="cyan">{`new ${fmtTokens(last.fresh)}`}</Text>}
+          {!wide && <Text dimColor>{`${fmtTokens(promptTokens(last))} tok`}</Text>}
+          {advice.kind !== 'uncached' && advice.kind !== 'off' && (
+            <Text bold color={left > 0 ? lifeColor(left, ttl, policy.warnMs) : 'red'}>{left > 0 ? `⏱ ${fmtClock(left)}` : '⏱ 0:00'}</Text>
+          )}
+        </Box>
         <Text dimColor wrap="truncate-end">{`${ttl} · ${advice.text}`}</Text>
       </Box>,
     )

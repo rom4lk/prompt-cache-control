@@ -192,7 +192,7 @@ async function step($: Engine, over: { turnId?: string; index?: number; agentId?
   }
 }
 
-const BAND = { hasSurvey: false } as never
+const BAND = { hasSurvey: false, bodyColumns: 100 } as never
 const band = ($: Engine) => $.ui.mount({ plugin: 'prompt-cache-control', surface: 'terminal', component: 'AbovePrompt', props: BAND })
 
 describe('the band', () => {
@@ -215,6 +215,17 @@ describe('the band', () => {
     expect(texts.slice(0, -1).some(t => /98%/.test(t))).toBe(true)
     await ui.unmount()
     expect(calls.status.at(-1)).toMatch(/^cache 98% · [45]:\d\d$/)
+  })
+
+  test('a narrow band body shows the prompt size instead of the split', async ($, on) => {
+    const calls: Calls = { status: [], logs: [] }
+    fakeEngine(on, {}, calls)
+    await $.session.start({ cwd: '/repo', surface: 'terminal', isInteractive: true } as never)
+    await step($)
+    const ui = await $.ui.mount({ plugin: 'prompt-cache-control', surface: 'terminal', component: 'AbovePrompt', props: { hasSurvey: false, bodyColumns: 60 } as never })
+    expect(await ui.find({ type: 'Text', text: /\d+k tok/ })).toBeDefined()
+    expect(await ui.find({ type: 'Text', text: /read / })).toBeUndefined()
+    await ui.unmount()
   })
 
   test('a subagent request is not the main loop and leaves the meter alone', { options: { status: true } }, async ($, on) => {
