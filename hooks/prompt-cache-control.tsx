@@ -108,6 +108,13 @@ function shortLine(policy: Policy, now: number): string {
   return `cache ${Math.round(hitRatio(last) * 100)}%${clock}`
 }
 
+// /cache and a click on the band both land here
+async function openPane($: EngineInterface) {
+  isPaneOpen = true
+  await $.ui.open({ id: PANE, title: 'cache', focus: true })
+  $.ui.invalidate('ui.render')
+}
+
 // the promptCacheTtl setting, from the settings files that can carry it (local over project over user)
 async function readSetting($: EngineInterface): Promise<unknown> {
   const home = await $.env.get('HOME').catch(() => undefined)
@@ -262,9 +269,7 @@ export const register: Register = (on, options) => {
       isPaneOpen = false
       return { text: 'cache table closed' }
     }
-    isPaneOpen = true
-    await $.ui.open({ id: PANE, title: 'cache', focus: true })
-    $.ui.invalidate('ui.render')
+    await openPane($)
     const { advice } = current(policy, Date.now())
     return { text: `${ttl} cache (${ttlSource}) · ${advice.text} · /${COMMAND} stop closes` }
   })
@@ -285,7 +290,7 @@ export const register: Register = (on, options) => {
     if (!showBand || e.props.hasSurvey || isPaneOpen) return next(e)
     const { last, advice, left } = current(policy, Date.now())
     if (!last && advice.kind !== 'off') return next(e)
-    const { Box, Text } = $.ui.resolve(e)
+    const { Box, Text, Button } = $.ui.resolve(e)
     const columns = e.props.bodyColumns
     const color = COLOR[advice.kind]
     // The band is one instance: whatever the plugins beneath draw (another mod's band) stays, under this line.
@@ -303,6 +308,8 @@ export const register: Register = (on, options) => {
     const wide = columns >= 90
     // One row: the figures never shrink, only the advice at the end truncates.
     // No fragments here: the desktop surface draws one as a block and stacks its children.
+    // The figures stay plain Text: the desktop draws a Button natively and drops its children's colors,
+    // so the /cache pane opens from a Button of its own at the end, framed like the pane's close button.
     return stack(
       <Box flexDirection="row" columnGap={1}>
         <Box flexDirection="row" columnGap={1} flexShrink={0}>
@@ -319,6 +326,9 @@ export const register: Register = (on, options) => {
           )}
         </Box>
         <Text dimColor wrap="truncate-end">{`${ttl} · ${advice.text}`}</Text>
+        <Box flexShrink={0}>
+          <Button key="open" label="table" onPress={() => void openPane($)} />
+        </Box>
       </Box>,
     )
   })

@@ -146,7 +146,7 @@ describe('per-turn rows', () => {
 })
 
 // The module end to end: a main-loop request feeds the band, a subagent's does not.
-type Calls = { status: (string | undefined)[]; logs: string[] }
+type Calls = { status: (string | undefined)[]; logs: string[]; opened?: string[] }
 
 function fakeEngine(on: On, env: Record<string, string>, calls: Calls, cache = { read: 80_000, write: 1_000 }, limits: { kind: string; percentUsed: number }[] = []) {
   on('session.usage', () => ({ value: { startedAt: 0, context: {}, rateLimits: limits } }) as never)
@@ -155,7 +155,10 @@ function fakeEngine(on: On, env: Record<string, string>, calls: Calls, cache = {
   on('env.get', ($, e) => ({ value: env[e.name] }))
   on('command.register', () => ({ value: undefined }) as never)
   on('clock.every', () => ({ value: undefined }) as never)
-  on('ui.open', () => ({ value: undefined }) as never)
+  on('ui.open', ($, e) => {
+    calls.opened?.push((e as { id: string }).id)
+    return { value: undefined } as never
+  })
   on('ui.close', () => ({ value: undefined }) as never)
   on('ui.invalidate', () => ({ value: undefined }) as never)
   on('ui.toast', () => ({ value: undefined }))
@@ -216,6 +219,27 @@ describe('the band', () => {
     await ui.unmount()
     expect(calls.status.at(-1)).toMatch(/^cache 98% · [45]:\d\d$/)
   })
+
+  for (const surface of ['terminal', 'desktop'] as const) {
+    test(`the table button opens the /cache pane and hides the band (${surface})`, async ($, on) => {
+      const calls: Calls = { status: [], logs: [], opened: [] }
+      fakeEngine(on, {}, calls)
+      await $.session.start({ cwd: '/repo', surface, isInteractive: true } as never)
+      await step($)
+      const ui = await $.ui.mount({ plugin: 'prompt-cache-control', surface, component: 'AbovePrompt', props: BAND })
+      // drawn with its chrome, `[ table ]` in the terminal, not as dim text
+      const button = await ui.find({ key: 'open' })
+      expect(button?.props).toMatchObject({ label: 'table' })
+      expect(button?.props).not.toHaveProperty('plain')
+      expect(button?.props).not.toHaveProperty('dimColor')
+      await ui.press({ key: 'open' })
+      expect(calls.opened).toEqual(['cache'])
+      await ui.unmount()
+      const after = await band($)
+      expect(await after.find({ type: 'Text', text: /98%/ })).toBeUndefined()
+      await after.unmount()
+    })
+  }
 
   test('a narrow band body shows the prompt size instead of the split', async ($, on) => {
     const calls: Calls = { status: [], logs: [] }
