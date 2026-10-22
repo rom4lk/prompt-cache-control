@@ -70,14 +70,18 @@ Other switches read from the environment at session start:
 
 The 100k `compactAtTokens` is a judgement, not a figure from the documentation: lower it if your model's cache writes are expensive for you.
 
+## Origin and license
+
+Forked from [davila7/claude-code-templates](https://github.com/davila7/claude-code-templates/tree/46b4d8b1c051e9fd0f8fdd739b15f7f5e8942608/cli-tool/components/mods/observability/prompt-cache-control) by Daniel Avila, at commit `46b4d8b`. The first commit of this repository is that code unchanged; every change since is a commit of its own. MIT, see [LICENSE](LICENSE).
+
 ## Install
 
 ```sh
-npx claude-code-templates@latest --mod observability/prompt-cache-control
+git clone https://github.com/rom4lk/prompt-cache-control.git ~/.claude/skills/prompt-cache-control
 claude
 ```
 
-It is written to `.claude/skills/prompt-cache-control/`, which Claude Code auto-loads as `prompt-cache-control@skills-dir` once the workspace trust prompt is accepted. For one session with hot reload: `claude --plugin-dir .claude/skills/prompt-cache-control`. `claude plugin validate .claude/skills/prompt-cache-control` prints every event it hooks and every `$` call it makes; `claude plugin test .claude/skills/prompt-cache-control` runs its tests.
+Claude Code auto-loads it as `prompt-cache-control@skills-dir`: from `~/.claude/skills/` in every session, or from a project's `.claude/skills/` in that project once the workspace trust prompt is accepted. Update with `git -C ~/.claude/skills/prompt-cache-control pull`. For one session with hot reload: `claude --plugin-dir <checkout>`. `claude plugin validate <checkout>` prints every event it hooks and every `$` call it makes; `claude plugin test <checkout>` runs its tests.
 
 Options are read from user settings (`~/.claude/settings.json`, never project settings), `--settings <file>` or managed settings, under the plugin's full id:
 

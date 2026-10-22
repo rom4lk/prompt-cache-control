@@ -1,4 +1,4 @@
-// Run with: claude plugin test observability/prompt-cache-control
+// Run with: claude plugin test .
 import { describe, expect, test } from 'claude-code/testing'
 import {
   advise,
